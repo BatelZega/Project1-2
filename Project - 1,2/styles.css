@@ -1,0 +1,71 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+header {
+  border: 1px solid black;
+}
+body{
+   padding:2%;
+}
+header h1 {
+  display: inline-block;
+  text-align: end;
+  width: 30%;
+}
+.dashbox {
+  width: 65%;
+  text-align: end;
+  margin-left: auto;
+  padding:10px;
+}
+
+.dashbox,
+.dashbox > * {
+  display: inline-block;
+  vertical-align: middle;
+  text-align: end;
+}
+
+img {
+  width: 30px;
+  height: 30px;
+  margin-inline: 15px;
+}
+
+#logout {
+  padding: 20px;
+  border: 1px solid black;
+  text-align: end;
+}
+ a {
+  text-decoration: none;
+}
+
+table{
+    text-align: center;
+    border:2px solid black;
+    margin: 20px auto;
+    padding:10px;
+    width:80%;
+}
+
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+  }
+
+th {
+    padding: 10px 25px;
+}
+.tasks{
+    margin:30px;
+}
+.shift {
+    padding:20px;
+    border:1px solid black;
+    display:inline-block;
+    margin:10px;
+} 

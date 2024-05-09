@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="./styles.css" />
+
+  <title>User Page</title>
+  <style>
+    .updateDB, .deleteDB {
+      padding: 7px;
+      border: none;
+      border-radius: 5px;
+      margin-block: 5px;
+      color: white;
+      cursor: pointer;
+    }
+
+    .updateDB {
+      background-color: sandybrown;
+    }
+
+    .deleteDB {
+      background-color: red;
+    }
+
+    .bottom {
+      border-bottom: 1px solid black;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Manage My Shifts</h1>
+    <div class="dashbox">
+      <p id="WellcomeName"></p>
+      <img src="./help-152.svg" alt="">
+      <h2 id="logout"><a href="./Login.html">Logout</a></h2>
+    </div>
+  </header>
+
+  <section>
+    <div class="tasks">
+      <h3 class="shift shifts">Shifts</h3>
+      <h3 class="shift" id="addShift">Add Shift</h3>
+      <h3 class="shift edit">Edit Profile</h3>
+    </div>
+
+    <table id="shiftTable">
+      <tr>
+        <th>Start Date</th>
+        <th>Start Time</th>
+        <th>End Time</th>
+        <th>Hourly Amount</th>
+        <th>Role</th>
+        <th>Branch</th>
+        <th>Overall Salary</th>
+        <th>Actions</th>
+      </tr>
+
+      <tbody id="tbody">
+        <!-- Dynamically added rows -->
+      </tbody>
+
+    </table>
+  </section>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js";
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDiZYQwwt-chgON8PWNE5zCJzi1yVnTHiQ",
+      authDomain: "usershifts-project.firebaseapp.com",
+      projectId: "usershifts-project",
+      storageBucket: "usershifts-project.appspot.com",
+      messagingSenderId: "167434287437",
+      appId: "1:167434287437:web:e0fa5fd5b682361f315f04",
+      measurementId: "G-0PE5GY4ZPN",
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Populate shifts table with data from Firestore
+    async function populateShiftsTable() {
+      const tbody = document.getElementById("tbody");
+      tbody.innerHTML = ""; // Clear existing rows
+
+      try {
+        const querySnapshot = await getDocs(collection(db, "Shafts"));
+        querySnapshot.forEach((doc, index) => {
+          const data = doc.data();
+          const startDate = new Date(data.startDate.seconds * 1000);
+          const endDate = new Date(data.endDate.seconds * 1000);
+
+          // Create and append a new table row
+          const newRow = document.createElement("tr");
+          newRow.id = `row-${index}`;
+          newRow.innerHTML = `
+            <td contenteditable="true">${startDate.toLocaleDateString()}</td>
+            <td contenteditable="true">${startDate.toLocaleTimeString()}</td>
+            <td contenteditable="true">${endDate.toLocaleTimeString()}</td>
+            <td contenteditable="true">${data.hourly_rate}</td>
+            <td contenteditable="true">${data.role}</td>
+            <td contenteditable="true">${data.branch}</td>
+            <td contenteditable="true">${((data.hourly_rate * ((endDate - startDate) / (1000 * 60 * 60))).toFixed(2))}</td>
+            <td>
+              <button class="updateDB" id="edit-${doc.id}">Edit</button>
+              <button class="deleteDB" id="delete-${doc.id}">Delete</button>
+            </td>
+          `;
+
+          tbody.appendChild(newRow);
+
+          // Attach event handlers
+          document.getElementById(`edit-${doc.id}`).onclick = () => saveEdits(doc.id, index);
+          document.getElementById(`delete-${doc.id}`).onclick = () => deleteShift(doc.id);
+        });
+      } catch (error) {
+        console.error("Error getting shifts:", error);
+      }
+    }
+
+    // Add a new shift row in the table
+    function addShiftRow() {
+      const tbody = document.getElementById("tbody");
+      const newRow = document.createElement("tr");
+
+      newRow.innerHTML = `
+        <td contenteditable="true" id="newStartDate">N/A</td>
+        <td contenteditable="true" id="newStartTime">N/A</td>
+        <td contenteditable="true" id="newEndTime">N/A</td>
+        <td contenteditable="true" id="newHourlyAmount">N/A</td>
+        <td contenteditable="true" id="newRole">N/A</td>
+        <td contenteditable="true" id="newBranch">N/A</td>
+        <td contenteditable="true" id="newOverall">N/A</td>
+        <td>
+          <button class="updateDB" id="addNew">Update To DB</button>
+        </td>
+      `;
+
+      tbody.appendChild(newRow);
+
+      // Attach the handler for the new "Update To DB" button
+      document.getElementById("addNew").onclick = addNewShiftToDB;
+    }
+
+    // Save a new shift to the Firestore collection
+    async function addNewShiftToDB() {
+      const startDate = new Date(document.getElementById("newStartDate").innerText);
+      const startTime = document.getElementById("newStartTime").innerText;
+      const endTime = document.getElementById("newEndTime").innerText;
+      const hourlyAmount = parseFloat(document.getElementById("newHourlyAmount").innerText);
+      const role = document.getElementById("newRole").innerText;
+      const branch = document.getElementById("newBranch").innerText;
+      const overall = parseFloat(document.getElementById("newOverall").innerText);
+
+      const newShift = {
+        startDate,
+        startTime,
+        endTime,
+        hourly_rate: hourlyAmount,
+        role,
+        branch,
+        overall_salary: overall
+      };
+
+      try {
+        await addDoc(collection(db, "Shafts"), newShift);
+        console.log("New shift added successfully");
+        populateShiftsTable(); // Refresh the table
+      } catch (error) {
+        console.error("Error adding new shift:", error);
+      }
+    }
+
+    // Delete a shift from Firestore by document ID
+    async function deleteShift(docId) {
+      try {
+        await deleteDoc(doc(db, "Shafts", docId));
+        console.log(`Document with ID ${docId} deleted successfully.`);
+        populateShiftsTable(); // Refresh the table
+      } catch (error) {
+        console.error(`Error deleting document: ${docId}`, error);
+      }
+    }
+
+    // Save edited data back to Firestore
+    async function saveEdits(docId, index) {
+      const row = document.getElementById(`row-${index}`);
+      const fields = Array.from(row.querySelectorAll('td[contenteditable="true"]'));
+      const updatedData = {
+        startDate: new Date(fields[0].innerText),
+        startTime: fields[1].innerText,
+        endTime: fields[2].innerText,
+        hourly_rate: parseFloat(fields[3].innerText),
+        role: fields[4].innerText,
+        branch: fields[5].innerText,
+        overall_salary: parseFloat(fields[6].innerText)
+      };
+
+      try {
+        await updateDoc(doc(db, "Shafts", docId), updatedData);
+        console.log(`Document with ID ${docId} updated successfully.`);
+      } catch (error) {
+        console.error(`Error updating document: ${docId}`, error);
+      }
+    }
+
+    // Attach events on page load
+    window.onload = () => {
+      document.getElementById("addShift").onclick = addShiftRow;
+      populateShiftsTable();
+    };
+
+
+    window.onload(()=>{
+      const userStorage = localStorage.getItem('registrationData');
+      const userResult = JSON.stringify(userStorage);
+    })
+    window.addEventListener('DOMContentLoaded', () => {
+     const userId = document.querySelector('#WellcomeName') ;
+     const userStorage = localStorage.getItem('registrationData');
+     const parserStorage = JSON.parse(userStorage).firstName;
+     console.log(parserStorage);
+      userId.textContent = `Hi ${parserStorage}`;
+
+
+    })
+
+
+
+  </script>
+
+</body>
+
+</html>
